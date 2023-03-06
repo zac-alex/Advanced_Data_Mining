@@ -1,0 +1,200 @@
+---
+title: "Data Mining-Assignment 1"
+author: "Zachariah Alex"
+date: "2023-03-05"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+***PART A ***
+
+**QA1. What is the main purpose of regularization when training predictive models?**
+
+*The main purpose of regularization is to prevent the model from over-fitting & under fitting.*
+*Once we start adding more variables the model becomes complex and flexible to follow the training samples.If the model starts to follow the training set too closely this will lead to over fitting ie. it looses the ability to perform well on the unseen data/test data or it will fail to generalize beyond the training samples.*
+*If the model is too simple it leads to under fitting or the error rate in both training and test set will be high.*
+
+*One way to deal with this problem of over fitting and under fitting is using regularization which helps in reducing the magnitude of parameters theta while keeping all features.This works best when we a are dealing with a model with large number of parameters and each of these parameters contributes a bit for predicting the target variable.*
+
+*Regularization seeks to maximize performance on the training set to prevent under fitting while simultaneously penalizing the model when it becomes too complex to prevent over fitting.*
+
+*Over fitting in predictive models is frequently avoided by using regularization techniques including L1 and L2 regularization(adding a penalty term to the objective function that penalizes the magnitude of the model's coefficients), dropout(randomly drops out nodes to capture only important features), and early stopping(stopping training process when performance on validation set stops improving).*
+
+
+**QA2. What is the role of a loss function in a predictive model? And name two common loss functions for regression models and two common loss functions for classification models.**
+
+*A loss function in a predictive model gives the measure of how well the model is able to predict the actual value or the target variable.In other words it gives the error between the predicted value and actual value by the model.This is a useful indicator as minimizing the loss function helps in optimization of the model.*
+
+*Two common loss function for regression models are:*
+
+*Mean Squared Error (MSE):It is the sum of squared distance between our actual and predicted value or in other words mean of squared errors.One advantage of MSE is that the it punishes error terms to larger extend than taking absolute error and since we are squaring the error terms the negative values becomes positives.One disadvantage is that the squaring can magnify the error terms and is not suitable for data sets will large number of outliers.*
+
+$$ MSE = \sum_{i=1}^{n}(y_i^- - y_i)^2/n$$
+
+*Mean Absolute Error (MAE):It is the mean absolute difference between the predicted value by the model and actual value.One advantage of MAE is that MAE is measured on the same scale(unlike MSE which squares the error) as it directly takes the difference between the actual and predicted value and modulus removes the sign thus eliminating the cancellation effect of error terms.One drawback of MAE is that outliers will be weighted with same extend as of lower errors.*
+
+$$  MAE=\sum(|Actual-Predicted|)/n   $$
+
+*Two common loss function for classification models are :*
+
+*Log loss :It calculates the difference between anticipated probability of each class and the actual data labels.*
+
+**Log loss= -(ylog(p)+(1-y)log(1-p))**
+
+*where P is the predicted probability and y is a binary indicator that is 0 if the actual output is false and is 1 if the actual output is true*
+
+*ROC/AUC Curve(Area under the curve):The curve compares the  positive rate to the false positive rate(type 1 error) over a range of threshold values to determine a model's ability to distinguish between positive and negative classes.ROC is a trade-off between True positive rate and false positive rate.AUC gives the total measure of performance across all possible classification threshold values*
+
+*Both ROC/AUC and Log loss are threshold agnostics*
+
+**QA3. Consider the following scenario. You are building a classification model with many hyper-parameters on a relatively small data set. You will see that the training error is extremely small.Can you fully trust this model?**
+
+*If we have a small data set with many hyper parameters there is a chance of model over fitting.The model quickly adapts to the data points in the small data set resulting in minimal training error but this model will perform poor in the test data or the unseen data.Therefore it is not advisable to fully trust on the model based on the training error.*
+
+
+**QA4. What is the role of the lambda parameter in regularized linear models such as Lasso or Ridge regression models?**
+
+*The lambda parameter in a linear model is a parameter which controls the level of regularization applied to the model.As the value for lambda is increased the penalty for increasing the model complexity is increased thereby resulting in a simple model.Decreasing the lambda value will decrease the regularization strength on the model which leads to more complex models with large coefficients.*
+*The higher the value for lambda the more emphasis on the model to shrink the coefficients to zero and for lower lambda value the lesser the regularization which tends to retain all the coefficients in the model as it is.*
+*In Ridge regression, the regularization term increases the loss function by a hyperparameter lambda multiplied by the sum of the squared magnitudes of the coefficients.*
+*In Lasso regression, the regularization term increases the loss function by lambda times the sum of the absolute coefficient magnitudes. As a result, some of the coefficients in the solutions are absolutely zero.*
+*Therefore the optimal value of lambda will be at a sweet spot where model is not too simple(under fitting) and the model is not too complex (over fitting)*
+
+
+
+
+
+
+
+***PART B***
+
+
+
+*Loading Required Library *
+```{r}
+
+library(ISLR)
+library(dplyr)
+library(glmnet)
+library(caret)
+
+```
+
+*Filtering required attributes for our new dataset*
+
+```{r}
+data <- Carseats %>% select("Sales", "Price","Advertising","Population","Age","Income","Education")
+
+head(data)
+```
+*Normalizing the data using center and scale method(z-score normalization)*
+```{r}
+
+#normalizing data
+
+pre_data <- preProcess(data, method=c("center", "scale"))
+
+norm_data <- predict(pre_data,data)
+
+head(norm_data)
+
+```
+**QB1**
+```{r}
+set.seed(123)
+
+#converting data into matrix format
+
+data1<-as.matrix(norm_data)
+
+x=data1[,2:7]
+
+y=data1[,1]
+
+# Applying Lasso model with cross validation
+
+cvfit=cv.glmnet(x,y)
+
+#Plotting the model
+
+plot(cvfit)
+
+```
+
+```{r}
+
+#Finding best value for lamda
+
+best_lambda<-cvfit$lambda.min
+
+best_lambda
+
+
+cvfit$lambda.1se
+
+```
+**Best value for lambda = 0.001524481**
+
+**QB2**
+```{r}
+set.seed(123)
+#Finding Coefficient of price attribute in the best model
+
+
+coef(cvfit , s="lambda.min")
+
+
+#Coefficient = -4.793834e-01
+
+```
+**Coefficient of price attribute for best model= -4.793834e-01**
+
+**QB3**
+```{r}
+#Number of attributes when lambda =0.01
+
+
+coef(cvfit , s=0.01)
+
+#All the attributes are retained when lambda value is set to 0.01
+
+#Number of attributes when lambda =0.1
+
+
+coef(cvfit , s=0.1)
+
+#Only 4 attributes Price,Advertising,Age and Income is retained and Population & Education attributes are set to 0
+
+
+```
+**The number of attributes came down from 6 to 4 when lambda value is increased from 0.01 to 0.1**
+
+
+**QB4**
+```{r}
+
+set.seed(123)
+
+#Building a elastic net model with alpha set to 0.6
+
+fit.elnet<-cv.glmnet(x,y,alpha=0.6)
+
+#Plot of Mean Squared Error vs lambda
+
+plot(fit.elnet,xvar="lambda")
+
+plot(cv.glmnet(x,y,alpha=0.6))
+
+bestlambda_elnet<-fit.elnet$lambda.min
+
+bestlambda_elnet
+
+# Best value for lambda when alpha is set to 0.6 = 0.002315083
+
+```
+**Best value for lambda when alpha is set to 0.6 = 0.002315083**
