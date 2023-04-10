@@ -1,0 +1,177 @@
+---
+title: "Advanced Data Mining Assignment-2"
+author: "Zachariah Alex"
+date: "2023-04-04"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+***PART A ***
+
+**QA1.What is the key idea behind bagging? Can bagging deal both with high variance(over-fitting) and high bias (under-fitting)?**
+
+*Bagging a.k.a bootstrap aggregation is the process of training classifiers on different subset of random samples with replacement, of the data set.This is due to that fact that a single algorithm may not make the perfect prediction for a given data set.*
+
+*Bagging can deal with the problem of high variance (over-fitting) but not high bias(under-fitting).*
+
+*Since we are training each base learners on different samples of data set there is diversity in training samples.The base learners we use are weak learners and they are less likely to over-fit the training data compared to complex models and even if one base model over fits ,they will tend to over fit in a different way compared to the other base learner since others are trained on different samples of data.Therefore when we ensemble these base learners the probability of the model to over-fit will be very low*
+*This is not possible in the case of high bias.Each base learners are weak learners and there is a chance that these models might fail to capture the underlying patterns in the data.So even if we ensemble these models together the combined model will not be good enough to make predictions with high accuracy if underlying base learners are under-fitted.Therefore bagging can deal with over-fitting but not under-fitting.*
+
+
+**QA2.Why bagging models are computationally more efficient when compared to boosting models with the same number of weak learners?**
+
+*Bagging is the process of training different models on different subset of training data independently and combining them to make the final prediction whereas in boosting different models are trained sequentially.*
+*Additionally bagging does not need a lot of data as the models are trained in parallel which gives a better computational efficiency compared to boosting.*
+*Each model in boosting is trained on the output or errors made by its predecessor so that the errors made by the first model or patterns unrecognized by the first model is rectified or captured by the second model.In boosting, models are fit iteratively so that the training of a given model at a given stage depends on the models fit at prior steps.*
+*When it comes to multiple models,it will become too computationally complex to fit sequentially when compared to bagging where models are trained and fit parallelly.Therefore we can say that bagging is more computationally efficient than boosting*
+
+
+**QA3. James is thinking of creating an ensemble model to predict whether a given stock will go up or down in the next week. He has trained several decision tree models but each model is not performing any better than a random model. The models are also very similar to each other. Do you think creating an ensemble model by combining these tree models can boost the performance? Discuss your answer.**
+
+*The two key requirement in creating an ensemble model is that the base learners should be better than a random model or should have some predictive power and the model should be independent of each other.Since all the base learners considered by James is of similar to each other there is no diversity among them and all the models will have similar outputs.Therefore even if we ensemble these model together this will not contribute in boosting the overall  performance as base learners are not performing better than a random model and  lack diversity between them.*
+
+**QA4.Consider the following Table that classifies some objects into two classes of edible (+) and non- edible (-), based on some characteristics such as the object color, size and shape. What would be the Information gain for splitting the dataset based on the “Size” attribute?**
+
+*The measure of disorder or entropy of two classes is calculated by the following equation*
+
+$$ Entropy = \sum_{i=1}^n-P(x=i).log_2.P(x=i) ,$$
+*where P(x=i) is the probability of class i*
+
+*Information gain is the reduction in entropy or it helps to identify the best split for a decision tree which can reduce the entropy.*
+
+**Information gain =Entropy(parent)-[average entropy(children)]**
+
+$$Entropy(parent)  = (-9/16 * log_2 9/16)-(7/16 * log_2 7/16)=0.988699$$
+$$Entropy(children(large))[3-edible/5-non edible] = (-3/8*log_23/8)-(5/8*log_25/8) =0.954433 $$
+$$Entropy(children(small))[6-edible/2-non edible] = (-6/8*log_2 6/8)-(2/8*log2/8) =0.811277 $$
+$$Weighted[Average.Entropy](children =(8/16)*0.954433+(8/16)*0.811277=0.882854$$
+
+*Information Gain = (Parent Entropy - average[ child Entropy])*
+
+$$Information.Gain = 0.988699-0.882854 = 0.105845$$
+
+**QA5. Why is it important that the m parameter (number of attributes available at each split) to be optimally set in random forest models? Discuss the implications of setting this parameter too small or too large.**
+
+
+*A random forest may consider the same attribute with highest predictive power or information gain for splitting at the top node and continue to behave similarly as we further split the child nodes.This will result in similar models as there is no diversity involved even if we use bagging.In order to address this issue in a random forest model,out of all the 'p' predictor variables we choose a set of random sampled predictors called 'm 'which is the number of attributes available for each split.Since all the features are not available for each node of each tree ,each tree will be different and this helps in incorporating diversity among different trees which is a key requirement for a efficient ensemble model.Therefore a random Forest model decides where to split based on a random selection of features *
+
+*If  m = p,it is just bagging and we are considering all the parameters for splitting at each node of each tree.*
+*If m parameter is too small ,then we are only considering very few attributes and each tree will not be having a good predictive power and this can lead to under-fitting.*
+*If m is parameter is too large ,we are considering almost all the attributes which can lead to similar trees and less diversity*
+*The default value for m in classification is the square root of p and minimum value of of node is one whereas in regression the default value for m is p/3 and minimum node size is five.*
+*In practical,the optimal value for m depends on the type of problem we are dealing with and should be considered as a tuning hyper-parameter.*
+
+
+
+***PART B***
+
+```{r}
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+
+*Loading Required Library *
+```{r}
+
+library(ISLR)
+library(dplyr)
+library(glmnet)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+
+```
+
+*Filtering required attributes for our new data set*
+
+```{r}
+data <- Carseats %>% select("Sales", "Price","Advertising","Population","Age","Income","Education")
+
+head(data)
+```
+
+**QB1**
+```{r}
+
+
+model<-rpart (Sales~.,data=data, method = 'anova')
+
+summary(model)
+
+fancyRpartPlot(model)
+
+
+
+#The price attribute is at the root node for splitting
+```
+**The price attribute is at the root node for splitting with a condition price greater than or equal to a particular value**
+
+
+
+**QB2**
+```{r}
+
+
+#Estimated sales using the following record : Sales=9,Price=6.54,Population=124,Advertising=0,Age=76,Income= 110,Education=10 :
+
+#Creating a data frame with the following records
+
+#Since we are considering Sales value as the target variable ,we will not include sales attribute in predictor variable list.
+
+pred_data = data.frame(Price=6.54 ,Population=124,Advertising=0,Age=76,Income= 110, Education= 10)
+
+
+Estimated_sales<- predict(model,pred_data)
+
+Estimated_sales
+
+
+```
+**The predicted estimated sales value is 9.58625**
+
+
+**QB3**
+```{r}
+#Training a random forest model
+
+set.seed(123)
+
+
+model_2 <- train(Sales~., data= data,method = "rf")
+
+#printing the model
+
+print(model_2)
+
+#mtry =2 has the least RMSE Value
+```
+**The best value for mtry=2 which has the least RMSE value**
+
+
+**QB4**
+```{r}
+
+set.seed(123)
+
+#Customizing  with tuning parameters and  repeats of 5-fold cross validation.
+
+custom <- trainControl(method="repeatedcv", number=5, repeats=3)
+
+#defining mtry values in search grid
+
+grids <- expand.grid(mtry=c(2,3,5))
+
+g_search <- train(Sales~., data=data, method="rf",tuneGrid=grids, trControl=custom)
+
+print(g_search)
+
+#Plotting
+
+plot(g_search)
+
+
+```
+**Optimal value for mtry=3 where RMSE is the least**
